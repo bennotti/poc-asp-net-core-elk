@@ -1,0 +1,56 @@
+version: "2.2"
+
+services:
+    es01:
+        container_name: elasticsearch
+        build:
+            context: .
+            dockerfile: ./elasticsearch/Dockerfile
+            args:
+                ELK_VERSION: "7.15.2"
+        volumes:
+          - type: bind
+            source: ./elasticsearch/config/elasticsearch.yml
+            target: /usr/share/elasticsearch/config/elasticsearch.yml
+            read_only: true
+          - type: volume
+            source: elasticsearch
+            target: /usr/share/elasticsearch/data
+        ports:
+          - "9200:9200"
+          - "9300:9300"
+        environment:
+            node.name: "es01"
+            ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+            bootstrap.memory_lock: "true"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        networks:
+          - elk
+
+    kib01:
+        container_name: kibana
+        build:
+            context: .
+            dockerfile: ./kibana/Dockerfile
+            args:
+                ELK_VERSION: $ELK_VERSION
+        volumes:
+          - type: bind
+            source: ./kibana/config/kibana.yml
+            target: /usr/share/kibana/config/kibana.yml
+            read_only: true
+        ports:
+          - "5601:5601"
+        networks:
+          - elk
+        depends_on:
+          - es01
+networks:
+  elk:
+    driver: bridge
+
+volumes:
+  elasticsearch:
